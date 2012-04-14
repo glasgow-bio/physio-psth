@@ -32,7 +32,7 @@ MainWindow::MainWindow( QWidget *parent, const char *name )
   subdevice = 0;
   int rangeid = 0; // +/- 4V
   int aref = AREF_GROUND;
-  int n_chan = 8;
+  int n_chan = MAX_CHANNELS;
 
   /* open the device */
   dev = comedi_open(filename);
@@ -48,10 +48,12 @@ MainWindow::MainWindow( QWidget *parent, const char *name )
   }
 
   cmd=new comedi_cmd;
+  //[FIX]: i think this one is expressed in nanoseconds 1e9
   int r = comedi_get_cmd_generic_timed(dev,
-				       subdevice,
-				       cmd,
-				       (int)(1e9/1000));
+                                       subdevice,
+                                       cmd,
+                                       n_chan,
+                                       (int)(1e9/(SAMPLING_RATE/n_chan)));
   if(r<0){
     printf("comedi_get_cmd_generic_timed failed\n");
     exit(-1);

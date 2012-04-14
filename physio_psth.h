@@ -44,11 +44,15 @@
 #include "psthplot.h"
 #include "dataplot.h"
 
-/// maximal length of the PSTH (for memory alloctaion)
+// maximal length of the PSTH (for memory alloctaion)
 #define MAX_PSTH_LENGTH 5000
 
-/// Number of channels. The MAX186 has 8 channels
+// Number of channels. The MAX186 has 8 channels
 #define MAX_CHANNELS 8
+
+#define SAMPLING_RATE 8000 // 8kHz
+
+#define FILTER_FREQU 50 // filter out 50Hz noise
 
 
 class MainWindow : public QWidget
