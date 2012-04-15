@@ -23,7 +23,7 @@ PsthPlot::PsthPlot(double *xData, double *yData, int length, QWidget *parent) :
   setAxisTitle(QwtPlot::yLeft, "Spikes/s");
 
   dataCurve = new QwtPlotCurve("PSTH");
-  dataCurve->setRawData(xData, yData, length);
+  dataCurve->setRawSamples(xData, yData, length);
   dataCurve->attach(this);
   dataCurve->setPen( QPen(Qt::blue, 2) );
   dataCurve->setStyle(QwtPlotCurve::Steps);
@@ -36,7 +36,7 @@ PsthPlot::PsthPlot(double *xData, double *yData, int length, QWidget *parent) :
 
 void PsthPlot::setPsthLength(int length)
 {
-  dataCurve->setRawData(xData, yData, length);
+  dataCurve->setRawSamples(xData, yData, length);
 }
 
 void PsthPlot::startDisplay()

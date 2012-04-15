@@ -1,0 +1,6 @@
+Makefile
+*~
+moc/
+obj/
+physio-psth
+physio-psth.pro.user

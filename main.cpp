@@ -8,8 +8,7 @@
  *   (at your option) any later version.                                   *
  ***************************************************************************/
 
-#include "physio_psth.h"
-
+#include "physio-psth.h"
 #include <QApplication>
 
 int main(int argc, char **argv)

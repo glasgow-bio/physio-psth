@@ -33,9 +33,9 @@ You need the following libraries to compile and run the program:
 
 Comedi: http://www.comedi.org/download.php
 Qt4: http://qt.nokia.com/downloads/downloads#qt-lib
-Qwt5: http://qwt.sourceforge.net/
+Qwt6: http://qwt.sourceforge.net/
 
-Once all libraries are up and running, have a look at "physio_psth.pro" and
+Once all libraries are up and running, have a look at "physio-psth.pro" and
 modify it.
 
 Then run "qmake", which should generate a Makefile and "make" to compile
@@ -45,7 +45,7 @@ everything. To finally run the program, you MUST have a comedi device installed.
 Running
 -------
 
-Start the program with "./physio_psth". The top plot shows the raw data. On the
+Start the program with "./physio-psth". The top plot shows the raw data. On the
 bottom, a PSTH may be plotted.
 
 The parameters for the PSTH can be specified in the "PSTH parameters" box on the

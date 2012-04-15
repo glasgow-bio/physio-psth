@@ -11,8 +11,8 @@
 #ifndef DATAPLOT_H
 #define DATAPLOT_H
 
-#include <qwt-qt4/qwt_plot.h>
-#include <qwt-qt4/qwt_plot_curve.h>
+#include <qwt/qwt_plot.h>
+#include <qwt/qwt_plot_curve.h>
 
 /// this plot shows the raw input data (spikes or membrane potential)
 class DataPlot : public QwtPlot

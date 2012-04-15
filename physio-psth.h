@@ -17,7 +17,7 @@
 #include <QPushButton>
 
 #include <comedilib.h>
-#include <qwt-qt4/qwt_counter.h>
+#include <qwt/qwt_counter.h>
 
 #include "psthplot.h"
 #include "dataplot.h"
@@ -37,19 +37,19 @@
 class MainWindow : public QWidget
 {
   Q_OBJECT
-    
+
   // show the raw serai data here
   DataPlot *RawDataPlot;
   // here the PSTH will be shown
   PsthPlot *MyPsthPlot;
-  
+
   // channel number for the seari device
   int adChannel;
   // length of the PSTH, this is the length on one trial
   int psthLength;
   // bin width for the PSTH
   int psthBinw;
-  // treshold for a spike
+  // threshold for a spike
   int spikeThres;
 
   // boo, activate/deactivate the psth plot
@@ -62,22 +62,22 @@ class MainWindow : public QWidget
   int psthRecordMode;
   // count trials while recording
   int psthActTrial;
-  
+
   // bool, set when a spike is detected and the activity has not
   // gone back to resting potential
   bool spikeDetected;
-  
+
   // data
   double xData[MAX_PSTH_LENGTH], yData[MAX_PSTH_LENGTH];
   // PSTH, t is time, p is spike count, psth is spikes/sec
   double timeData[MAX_PSTH_LENGTH], spikeCountData[MAX_PSTH_LENGTH], psthData[MAX_PSTH_LENGTH];
-  
+
   // serai file desc
   int usbFd;
-  
+
   // time counter
   long int time;
-  
+
   // click
   FILE *sounddev;
   char beep;
@@ -85,7 +85,7 @@ class MainWindow : public QWidget
   int playSound;
 
   comedi_cmd comediCommand;
-  
+
   /**
    * file descriptor for /dev/comedi0
    **/

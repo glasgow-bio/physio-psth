@@ -9,7 +9,7 @@
  *   (at your option) any later version.                                   *
  ***************************************************************************/
 
-#include "physio_psth.h"
+#include "physio-psth.h"
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -20,18 +20,8 @@
 #include <QFileDialog>
 #include <QTextStream>
 
-class PrintFilter: public QwtPlotPrintFilter
-{
-public:
-  PrintFilter() {}
+#include <qwt/qwt_plot_renderer.h>
 
-  virtual QFont font(const QFont &f, Item, int) const
-  {
-    QFont f2 = f;
-    f2.setPointSize(f.pointSize() * 0.75);
-    return f2;
-  }
-};
 
 MainWindow::MainWindow( QWidget *parent ) :
     QWidget(parent),
@@ -318,10 +308,10 @@ void MainWindow::slotPrint()
   QPrinter printer;
 
   QString docName = MyPsthPlot->title().text();
-  if ( docName.isEmpty() )
+  if ( !docName.isEmpty() )
   {
-    docName.replace (QRegExp (QString::fromLatin1 ("\n")), tr (" -- "));
-    printer.setDocName (docName);
+    docName.replace("\n", " -- ");
+    printer.setDocName(docName);
   }
 
   printer.setOrientation(QPrinter::Landscape);
@@ -329,7 +319,7 @@ void MainWindow::slotPrint()
   QPrintDialog dialog(&printer, this);
 
   if( dialog.exec() == QDialog::Accepted )
-    MyPsthPlot->print(printer, PrintFilter());
+    QwtPlotRenderer().renderTo(MyPsthPlot, printer);
 }
 
 void MainWindow::slotSoundToggle()
@@ -533,10 +523,10 @@ void MainWindow::timerEvent(QTimerEvent *)
     {
       spikeDetected = false;
     }
-    
+
     if( trialIndex == 0 )
       psthActTrial += 1;
-    
+
     if( psthRecordMode && psthActTrial == psthNumTrials )
     {
       psthRecordMode = 0;
@@ -546,8 +536,10 @@ void MainWindow::timerEvent(QTimerEvent *)
 
     ++time;
   }
-  
+
+
   RawDataPlot->replot();
+  RawDataPlot->updateAxes();
 }
 
 

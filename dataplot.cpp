@@ -23,7 +23,7 @@ DataPlot::DataPlot(const double *xData, const double *yData, int length, QWidget
   // Insert new curve for raw data
   dataCurve = new QwtPlotCurve("Raw Data");
   dataCurve->setPen( QPen(Qt::red, 2) );
-  dataCurve->setRawData(xData, yData, length);
+  dataCurve->setRawSamples(xData, yData, length);
   dataCurve->attach(this);
 
   //long mY = insertLineMarker("", QwtPlot::yLeft);
@@ -33,7 +33,6 @@ DataPlot::DataPlot(const double *xData, const double *yData, int length, QWidget
 void DataPlot::setPsthLength(int length)
 {
   psthLength = length;
-  dataCurve->setRawData(xData, yData, psthLength);
+  dataCurve->setRawSamples(xData, yData, psthLength);
   replot();
 }
-
