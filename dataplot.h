@@ -27,14 +27,14 @@ class DataPlot : public QwtPlot
 
 public:
 
-  DataPlot(int initP, double *x, double *y, QWidget *parent = 0, const char *name=0);
+  DataPlot(int initP, const double *x, const double *y, QWidget *parent = 0, const char *name=0);
   void setPsthLength(int l);
   
 protected:
 
 private:
 
-  double *x, *y;
+  const double *x, *y;
 
   // number of data points
   int psthLength;

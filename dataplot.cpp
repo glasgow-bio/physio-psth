@@ -12,7 +12,7 @@
 
 //[TO DO] fix name to QwtText
 DataPlot::DataPlot(int initP, 
-		   double *xd, double *yd, 
+           const double *xd, const double *yd,
 		   QWidget *parent, const char *name)
   : QwtPlot( parent)
 {
@@ -23,11 +23,7 @@ DataPlot::DataPlot(int initP,
   setTitle("Raw Data");
   x = xd;
   y = yd;
-  //at the beginning they are empty
-  for(int i=0;i<initP/2;i++) {
-          x[i]=0.0;
-          y[i]=0.0;
-  }
+
   dataCurve->setPen(QPen(Qt::red,2));
   dataCurve->setRawData(x,y,initP);
 
@@ -36,7 +32,7 @@ DataPlot::DataPlot(int initP,
 
   setAxisTitle(QwtPlot::xBottom, "Time/ms");
   setAxisTitle(QwtPlot::yLeft, "A/D Value");
-  setAxisScale(QwtPlot::yLeft,0, 3000);
+  setAxisScale(QwtPlot::yLeft, 2000, 5000);
   dataCurve->attach(this);
 
 }

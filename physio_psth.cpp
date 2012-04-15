@@ -62,7 +62,7 @@ MainWindow::MainWindow( QWidget *parent, const char *name )
                                        n_chan,
                                        (int)(1e9/(SAMPLING_RATE/n_chan)));
   if(r<0){
-    printf("comedi_get_cmd_generic_timefailed\n");
+    printf("comedi_get_cmd_generic_timed failed\n");
     exit(-1);
   }
 
@@ -145,7 +145,7 @@ MainWindow::MainWindow( QWidget *parent, const char *name )
   Q3VBoxLayout *plotLayout = new Q3VBoxLayout( mainLayout);
 
   // two plots
-  RawDataPlot = new DataPlot(psthLength, &x[0], &y[0], this);
+  RawDataPlot = new DataPlot(psthLength, x, y, this);
   plotLayout->addWidget(RawDataPlot);
   RawDataPlot->show();
   RawDataPlot->setPsthLength(psthLength);
@@ -427,7 +427,8 @@ void MainWindow::timerEvent(QTimerEvent *)
 
     //[TODO]: shift the points the fastest way is to use a memmove DANGEROUS!
     // Shift curve's datas to the left
-    memmove( &y[0] , &y[0] + 1 ,(psthLength - 1) * sizeof(y[0]) );
+    //memmove( &y[0] , &y[0] + 1 ,(psthLength - 1) * sizeof(y[0]) );
+    memmove( y+1 , y ,(psthLength - 1) * sizeof(y[0]) );
     //qwtShiftArray(y, MAX_PSTH_LENGTH, 1); this cannot be used anymore
     y[0] = ((sampl_t *)buffer)[adChannel];
     if (averagePsth->isDown()) {
