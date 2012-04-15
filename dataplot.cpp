@@ -10,37 +10,30 @@
 
 #include "dataplot.h"
 
-//[TO DO] fix name to QwtText
-DataPlot::DataPlot(int initP, 
-           const double *xd, const double *yd,
-		   QWidget *parent, const char *name)
-  : QwtPlot( parent)
+DataPlot::DataPlot(const double *xData, const double *yData, int length, QWidget *parent) :
+    QwtPlot(parent),
+    xData(xData),
+    yData(yData)
 {
+  setTitle("Raw Data");
+  setAxisTitle(QwtPlot::xBottom, "Time/ms");
+  setAxisTitle(QwtPlot::yLeft, "A/D Value");
+  //setAxisScale(QwtPlot::yLeft, 2000, 5000);
 
   // Insert new curve for raw data
   dataCurve = new QwtPlotCurve("Raw Data");
-  // Assign a title
-  setTitle("Raw Data");
-  x = xd;
-  y = yd;
-
-  dataCurve->setPen(QPen(Qt::red,2));
-  dataCurve->setRawData(x,y,initP);
+  dataCurve->setPen( QPen(Qt::red, 2) );
+  dataCurve->setRawData(xData, yData, length);
+  dataCurve->attach(this);
 
   //long mY = insertLineMarker("", QwtPlot::yLeft);
   //setMarkerYPos(mY, 0.0);
-
-  setAxisTitle(QwtPlot::xBottom, "Time/ms");
-  setAxisTitle(QwtPlot::yLeft, "A/D Value");
-  setAxisScale(QwtPlot::yLeft, 2000, 5000);
-  dataCurve->attach(this);
-
 }
 
-void DataPlot::setPsthLength(int l)
+void DataPlot::setPsthLength(int length)
 {
-  psthLength = l;
-  dataCurve->setRawData(x,y,psthLength);
+  psthLength = length;
+  dataCurve->setRawData(xData, yData, psthLength);
   replot();
 }
 

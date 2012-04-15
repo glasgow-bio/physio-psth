@@ -13,48 +13,25 @@
 #ifndef PHYSIO_PSTH_H
 #define PHYSIO_PSTH_H
 
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <math.h>
-
-#include <qapplication.h>
-#include <q3mainwindow.h>
-#include <qlayout.h> 
-#include <q3frame.h>
-#include <qwidget.h>
-#include <qlabel.h>
-#include <q3groupbox.h>
-#include <q3buttongroup.h>
-#include <qlayout.h> 
-#include <qsize.h>
-#include <qpushbutton.h>
-#include <q3textstream.h>
-#include <qfile.h>
-#include <q3filedialog.h>
-#include <qpainter.h>
-#include <qprinter.h>
-#include <qregexp.h>
-#include <qpen.h>
-//Added by qt3to4:
-#include <QTimerEvent>
+#include <QWidget>
+#include <QPushButton>
 
 #include <comedilib.h>
-#include <fcntl.h>
+#include <qwt-qt4/qwt_counter.h>
 
 #include "psthplot.h"
 #include "dataplot.h"
 
+
 // maximal length of the PSTH (for memory alloctaion)
 #define MAX_PSTH_LENGTH 5000
-
-// Number of channels. The MAX186 has 8 channels
-#define MAX_CHANNELS 8
 
 #define SAMPLING_RATE 8000 // 8kHz
 
 #define FILTER_FREQU 50 // filter out 50Hz noise
+
+#define COMEDI_SUB_DEVICE  0
+#define COMEDI_RANGE_ID    0    /* +/- 4V */
 
 
 class MainWindow : public QWidget
@@ -88,22 +65,15 @@ class MainWindow : public QWidget
   
   // bool, set when a spike is detected and the activity has not
   // gone back to resting potential
-  int spikeDetected;
-  // spikecounter
-  int spikec;
+  bool spikeDetected;
   
-  // data, x is time and y is value
-  double x[MAX_PSTH_LENGTH], y[MAX_PSTH_LENGTH];
+  // data
+  double xData[MAX_PSTH_LENGTH], yData[MAX_PSTH_LENGTH];
   // PSTH, t is time, p is spike count, psth is spikes/sec
-  double t[MAX_PSTH_LENGTH], p[MAX_PSTH_LENGTH], psth[MAX_PSTH_LENGTH];
-  // contains all spikes of a trial
-  long int spikes[MAX_PSTH_LENGTH];
+  double timeData[MAX_PSTH_LENGTH], spikeCountData[MAX_PSTH_LENGTH], psthData[MAX_PSTH_LENGTH];
   
   // serai file desc
   int usbFd;
-  // buffer for the serai data
-  //short int buffer[16];
-  unsigned char buffer[32];
   
   // time counter
   long int time;
@@ -113,19 +83,18 @@ class MainWindow : public QWidget
   char beep;
   char quiet;
   int playSound;
-  
-  // print the psths
-  QPrinter     *printer;
-  
-  
-  int subdevice;
-  comedi_cmd *cmd;
+
+  comedi_cmd comediCommand;
   
   /**
    * file descriptor for /dev/comedi0
    **/
   comedi_t *dev;
-  unsigned int *chanlist;
+  size_t   readSize;
+  bool     sigmaBoard;
+
+  int numChannels;
+  unsigned *chanlist;
 
   QPushButton *averagePsth;
   QwtCounter *cntBinw;
@@ -146,7 +115,7 @@ private slots:
   void slotSetNumTrials(double);
   void slotStartPsthRec();
   void slotSoundToggle();
-  void slotAveragePsth();
+  void slotAveragePsth(bool checked);
 
 protected:
 
@@ -155,7 +124,7 @@ protected:
 
 public:
 
-  MainWindow( QWidget *parent=0, const char *name=0 );
+  MainWindow( QWidget *parent=0 );
   ~MainWindow();
 
 };

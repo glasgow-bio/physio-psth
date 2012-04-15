@@ -11,37 +11,24 @@
 #ifndef DATAPLOT_H
 #define DATAPLOT_H
 
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <math.h>
 #include <qwt-qt4/qwt_plot.h>
-#include <qwt-qt4/qwt_math.h>
-#include <qwt-qt4/qwt_counter.h>
 #include <qwt-qt4/qwt_plot_curve.h>
 
 /// this plot shows the raw input data (spikes or membrane potential)
 class DataPlot : public QwtPlot
 {
-
 public:
 
-  DataPlot(int initP, const double *x, const double *y, QWidget *parent = 0, const char *name=0);
-  void setPsthLength(int l);
+  DataPlot(const double *xData, const double *yData, int length, QWidget *parent = 0);
+  void setPsthLength(int length);
   
-protected:
-
 private:
-
-  const double *x, *y;
+  const double *xData, *yData;
 
   // number of data points
   int psthLength;
   // curve object
   QwtPlotCurve *dataCurve;
-
-
 };
 
 #endif

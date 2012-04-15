@@ -10,13 +10,14 @@
 
 #include "physio_psth.h"
 
+#include <QApplication>
+
 int main(int argc, char **argv)
 {
-  QApplication a(argc, argv);
+  QApplication app(argc, argv);
+  MainWindow   mainWindow;
 
-  MainWindow m;
-  m.show();
-  a.setMainWidget(&m);
+  mainWindow.show();
   
-  return a.exec();
+  return app.exec();
 }
