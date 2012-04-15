@@ -20,23 +20,25 @@
 #include <math.h>
 
 #include <qapplication.h>
-#include <qmainwindow.h>
+#include <q3mainwindow.h>
 #include <qlayout.h> 
-#include <qframe.h>
+#include <q3frame.h>
 #include <qwidget.h>
 #include <qlabel.h>
-#include <qgroupbox.h>
-#include <qbuttongroup.h>
+#include <q3groupbox.h>
+#include <q3buttongroup.h>
 #include <qlayout.h> 
 #include <qsize.h>
 #include <qpushbutton.h>
-#include <qtextstream.h>
+#include <q3textstream.h>
 #include <qfile.h>
-#include <qfiledialog.h>
+#include <q3filedialog.h>
 #include <qpainter.h>
 #include <qprinter.h>
 #include <qregexp.h>
 #include <qpen.h>
+//Added by qt3to4:
+#include <QTimerEvent>
 
 #include <comedilib.h>
 #include <fcntl.h>

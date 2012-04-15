@@ -16,22 +16,39 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <math.h>
-
-#include <qwt_plot.h>
-#include <qwt_math.h>
-#include <qwt_counter.h>
+#include <qwidget.h>
+#include <qpushbutton.h>
+#include <qcheckbox.h>
+#include <q3groupbox.h>
+#include <q3buttongroup.h>
+#include <qlayout.h>
+#include <qtimer.h>
+#include <QMainWindow>
+#include <qwt-qt4/qwt_plot.h>
+#include <qwt-qt4/qwt_math.h>
+#include <qwt-qt4/qwt_counter.h>
+#include <qwt-qt4/qwt_plot_curve.h>
+//Added by qt3to4:
+#include <QTimerEvent>
 
 
 /** The PSTH plot widget
 */
+//TO DO: QwtPlot became QMainWindow
 class PsthPlot : public QwtPlot
 {
+
+  ///pointer to the curve widget
+    QwtPlot *dataPlot;
+    QwtPlotCurve *dataCurve;
 
   /// pointer to the x and y data
   double *x, *y;
   
   /// PSTH curve
   long cPsthData;
+  ///timer id
+  int currtimer;
 
 protected:
 
@@ -46,7 +63,8 @@ public:
   void stopDisplay();
   
   void setYaxisLabel(char * l) {
-	  setAxisTitle(QwtPlot::yLeft,l);
+      dataPlot->setAxisTitle(QwtPlot::yLeft,l);
+      //setAxisTitle(QwtPlot::yLeft,l);
   }
 
 };

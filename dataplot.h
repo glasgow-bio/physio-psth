@@ -16,10 +16,10 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <math.h>
-
-#include <qwt_plot.h>
-#include <qwt_math.h>
-#include <qwt_counter.h>
+#include <qwt-qt4/qwt_plot.h>
+#include <qwt-qt4/qwt_math.h>
+#include <qwt-qt4/qwt_counter.h>
+#include <qwt-qt4/qwt_plot_curve.h>
 
 /// this plot shows the raw input data (spikes or membrane potential)
 class DataPlot : public QwtPlot
@@ -38,8 +38,9 @@ private:
 
   // number of data points
   int psthLength;
-  // curve handle
-  long cRawData;
+  // curve object
+  QwtPlotCurve *dataCurve;
+
 
 };
 

@@ -40,7 +40,7 @@ QWT: http://qwt.sourceforge.net/
 Once all libraries are up and running, have a look at "physio.pro"
 and modify it.
 
-Then run "qmake-qt3", which should generate a Makefile and "make" to
+Then run "qmake", which should generate a Makefile and "make" to
 compile everything. To finally run the program, you MUST have a comedi
 device installed.
 

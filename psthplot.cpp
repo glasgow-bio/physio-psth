@@ -9,24 +9,29 @@
  ***************************************************************************/
 
 #include "psthplot.h"
+//Added by qt3to4:
+#include <QTimerEvent>
 
+//[TO DO] the name of window must be like QwtText("title")
 PsthPlot::PsthPlot(double *xd, double *yd, QWidget *parent, const char *name)
-  : QwtPlot( parent, name )
+  : QwtPlot( parent )
 {
   x = xd;
   y = yd;
 
+  dataCurve = new QwtPlotCurve("PSTH");
+
   // Assign a title
   setTitle("PSTH");
+  dataCurve->setRawData(x,y,50);
+  dataCurve->attach(this);
+  //cPsthData = insertCurve("PSTH");
+  dataCurve->setPen(QPen(Qt::blue,2));
 
-  cPsthData = insertCurve("PSTH");
+  dataCurve->setStyle(QwtPlotCurve::Steps);
 
-  setCurvePen(cPsthData, QPen(blue, 2));
-  setCurveStyle(cPsthData, QwtCurve::Steps);
-  setCurveRawData(cPsthData, xd, yd, 50);
-
-  long mY = insertLineMarker("", QwtPlot::yLeft);
-  setMarkerYPos(mY, 0.0);
+  //long mY = insertLineMarker("", QwtPlot::yLeft);
+  //setMarkerYPos(mY, 0.0);
 
   setAxisTitle(QwtPlot::xBottom, "Time/ms");
   setAxisTitle(QwtPlot::yLeft, "Spikes/s");
@@ -38,17 +43,19 @@ void PsthPlot::setPsthData(double *xd, double *yd, int l)
 {
   x = xd;
   y = yd;
-  setCurveRawData(cPsthData, x, y, l);
+  dataCurve->setRawData(x, y, l);
+
 }
 
 void PsthPlot::startDisplay()
 {
-  (void)startTimer(150);
+  currtimer=startTimer(150);
 }
 
 void PsthPlot::stopDisplay()
 {
-  (void)killTimers();
+       killTimer(currtimer);
+
 }
 
 void PsthPlot::timerEvent(QTimerEvent *)

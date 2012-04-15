@@ -10,6 +10,13 @@
  ***************************************************************************/
 
 #include "physio_psth.h"
+//Added by qt3to4:
+#include <Q3TextStream>
+#include <Q3HBoxLayout>
+#include <QTimerEvent>
+#include <QLabel>
+#include <Q3VBoxLayout>
+#define SAMPLING_RATE 8000
 
 class PrintFilter: public QwtPlotPrintFilter
 {
@@ -55,16 +62,12 @@ MainWindow::MainWindow( QWidget *parent, const char *name )
                                        n_chan,
                                        (int)(1e9/(SAMPLING_RATE/n_chan)));
   if(r<0){
-    printf("comedi_get_cmd_generic_timed failed\n");
+    printf("comedi_get_cmd_generic_timefailed\n");
     exit(-1);
   }
 
   /* Modify parts of the command */
   cmd->chanlist           = chanlist;
-  cmd->chanlist_len       = n_chan;
-
-  cmd->scan_end_arg = n_chan;
-
   cmd->stop_src=TRIG_NONE;
   cmd->stop_arg=0;
 
@@ -137,9 +140,9 @@ MainWindow::MainWindow( QWidget *parent, const char *name )
   printer = new QPrinter;
 
   resize(640,420);
-  QHBoxLayout *mainLayout = new QHBoxLayout( this, 2, 2 );
-  QVBoxLayout *controlLayout = new QVBoxLayout( mainLayout);
-  QVBoxLayout *plotLayout = new QVBoxLayout( mainLayout);
+  Q3HBoxLayout *mainLayout = new Q3HBoxLayout( this, 2, 2 );
+  Q3VBoxLayout *controlLayout = new Q3VBoxLayout( mainLayout);
+  Q3VBoxLayout *plotLayout = new Q3VBoxLayout( mainLayout);
 
   // two plots
   RawDataPlot = new DataPlot(psthLength, &x[0], &y[0], this);
@@ -154,7 +157,7 @@ MainWindow::MainWindow( QWidget *parent, const char *name )
 
   // all buttons
   // AD group
-  QGroupBox *ADcounterGroup = new QButtonGroup( 1, QGroupBox::Horizontal, "A/D Channel", this );
+  Q3GroupBox *ADcounterGroup = new Q3ButtonGroup( 1, Qt::Horizontal, "A/D Channel", this );
   controlLayout->addWidget( ADcounterGroup );
   ADcounterGroup->setAlignment(Qt::AlignJustify);
   ADcounterGroup->setSizePolicy (QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed));
@@ -170,7 +173,7 @@ MainWindow::MainWindow( QWidget *parent, const char *name )
   connect(toggleSound, SIGNAL(clicked()), SLOT(slotSoundToggle()));
 
   // psth functions
-  QGroupBox *PSTHfunGroup = new QButtonGroup( 1, QGroupBox::Horizontal, "PSTH functions", this );
+  Q3GroupBox *PSTHfunGroup = new Q3ButtonGroup( 1, Qt::Horizontal, "PSTH functions", this );
   controlLayout->addWidget( PSTHfunGroup );
   PSTHfunGroup->setSizePolicy (QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed));
 
@@ -197,7 +200,7 @@ MainWindow::MainWindow( QWidget *parent, const char *name )
   connect(printPsth, SIGNAL(clicked()), SLOT(slotPrint()));
 
   // psth params
-  QGroupBox *PSTHcounterGroup = new QButtonGroup( 1, QGroupBox::Horizontal, "PSTH parameters", this );
+  Q3GroupBox *PSTHcounterGroup = new Q3ButtonGroup( 1, Qt::Horizontal, "PSTH parameters", this );
   controlLayout->addWidget( PSTHcounterGroup );
   PSTHcounterGroup->setSizePolicy (QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed));
 
@@ -230,7 +233,7 @@ MainWindow::MainWindow( QWidget *parent, const char *name )
   connect(cntSpikeT, SIGNAL(valueChanged(double)), SLOT(slotSetSpikeThres(double)));
 
   // psth recording
-  QGroupBox *PSTHrecGroup = new QButtonGroup( 1, QGroupBox::Horizontal, "PSTH recording", this );
+  Q3GroupBox *PSTHrecGroup = new Q3ButtonGroup( 1, Qt::Horizontal, "PSTH recording", this );
   controlLayout->addWidget( PSTHrecGroup );
   PSTHrecGroup->setSizePolicy (QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed));
 
@@ -262,7 +265,7 @@ void MainWindow::slotPrint()
   // print the PSTH plot
   QPrinter printer;
 
-  QString docName = MyPsthPlot->title();
+  QString docName = (MyPsthPlot->title()).text();
   if ( docName.isEmpty() )
     {
       docName.replace (QRegExp (QString::fromLatin1 ("\n")), tr (" -- "));
@@ -303,16 +306,16 @@ void MainWindow::slotSetNumTrials(double n)
 
 void MainWindow::slotSavePsth()
 {
-  QFileDialog fd(this, "file dialog", TRUE );
-  fd.setMode( QFileDialog::AnyFile );
+  Q3FileDialog fd(this, "file dialog", TRUE );
+  fd.setMode( Q3FileDialog::AnyFile );
   fd.setFilter( "PSTH Data (*.psth)" );
-  fd.setViewMode( QFileDialog::Detail );
+  fd.setViewMode( Q3FileDialog::Detail );
   if ( fd.exec() == QDialog::Accepted )
     {
       QString fileName = fd.selectedFile();
       QFile file(fileName);
-      file.open(IO_WriteOnly);
-      QTextStream ts(&file);
+      file.open(QIODevice::WriteOnly);
+      Q3TextStream ts(&file);
       for(int i=0; i<psthLength/psthBinw; i++) {
 	ts << t[i] << "\t" << psth[i] << "\n";
       }
@@ -397,11 +400,11 @@ void MainWindow::slotSetSpikeThres(double t)
 }
 
 void MainWindow::slotAveragePsth() {
-	if (averagePsth->state()==QButton::On) {
+        if (averagePsth->isDown()) {
 		cntBinw->setEnabled( FALSE );
 		cntSpikeT->setEnabled( FALSE );
-		MyPsthPlot->setYaxisLabel("Averaged Data");
-		triggerPsth->setText("Averaging on");
+                MyPsthPlot->setYaxisLabel("Averaged Data");
+                triggerPsth->setText("Averaging on");
 		psthBinw=1;
 		cntBinw->setValue(psthBinw);
 	} else {
@@ -422,9 +425,12 @@ void MainWindow::timerEvent(QTimerEvent *)
       exit(1);
     }
 
-    qwtShiftArray(y, MAX_PSTH_LENGTH, 1);
+    //[TODO]: shift the points the fastest way is to use a memmove DANGEROUS!
+    // Shift curve's datas to the left
+    memmove( &y[0] , &y[0] + 1 ,(psthLength - 1) * sizeof(y[0]) );
+    //qwtShiftArray(y, MAX_PSTH_LENGTH, 1); this cannot be used anymore
     y[0] = ((sampl_t *)buffer)[adChannel];
-    if (averagePsth->state()==QButton::On) {
+    if (averagePsth->isDown()) {
 	    if(psthOn)
 		    {
 			    p[(int)floor(time%psthLength)] += y[0];
