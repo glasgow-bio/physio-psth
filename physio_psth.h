@@ -20,6 +20,7 @@
 
 #include <comedilib.h>
 #include <qwt/qwt_counter.h>
+#include <qwt/qwt_plot_marker.h>
 
 #include "psthplot.h"
 #include "dataplot.h"
@@ -53,7 +54,7 @@ class MainWindow : public QWidget
   // bin width for the PSTH
   int psthBinw;
   // treshold for a spike
-  int spikeThres;
+  double spikeThres;
 
   // boo, activate/deactivate the psth plot
   int psthOn;
@@ -98,6 +99,7 @@ class MainWindow : public QWidget
   QTextEdit *editSpikeT;
   QPushButton *triggerPsth;
   QCheckBox* filter50HzCheckBox;
+  QwtPlotMarker *thresholdMarker;
 
 private slots:
 

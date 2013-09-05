@@ -21,7 +21,7 @@ DataPlot::DataPlot(double *xData, double *yData, int length,
 {
   setTitle("Raw Data");
   setAxisTitle(QwtPlot::xBottom, "Time/ms");
-  setAxisTitle(QwtPlot::yLeft, "A/D Value");
+  setAxisTitle(QwtPlot::yLeft, "ADC value / V");
 
   // setAxisAutoScale(QwtPlot::yLeft,true);
 
