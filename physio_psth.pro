@@ -4,8 +4,9 @@ OBJECTS_DIR = obj
 
 LIBS += \
     -L/usr/local/lib \
-    -lqwt-qt4 \
-    -lcomedi
+    -lqwt \
+    -lcomedi \
+    -liir
 
 TMAKE_CXXFLAGS += -fno-exceptions
 

@@ -20,33 +20,15 @@
 #include <QFileDialog>
 #include <QTextStream>
 
-class PrintFilter: public QwtPlotPrintFilter
-{
-public:
-  PrintFilter() {}
-
-  virtual QFont font(const QFont &f, Item, int) const
-  {
-    QFont f2 = f;
-    f2.setPointSize(f.pointSize() * 0.75);
-    return f2;
-  }
-};
-
 MainWindow::MainWindow( QWidget *parent ) :
     QWidget(parent),
-    adChannel(4),
+    adChannel(0),
     psthLength(1000),
     psthBinw(20),
-    spikeThres(2500),
+    spikeThres(1),
     psthOn(0),
-    psthNumTrials(10),
-    psthRecordMode(0),
     spikeDetected(false),
-    time(0),
-    beep(255),
-    quiet(0),
-    playSound(0)
+    time(0)
 {
   // initialize comedi
   const char *filename = "/dev/comedi0";
@@ -58,6 +40,8 @@ MainWindow::MainWindow( QWidget *parent ) :
     exit(1);
   }
 
+  maxdata = comedi_get_maxdata(dev, COMEDI_SUB_DEVICE, 0);
+  crange = comedi_get_range(dev,COMEDI_SUB_DEVICE,0,0);
   numChannels = comedi_get_n_channels(dev, COMEDI_SUB_DEVICE);
 
   chanlist = new unsigned[numChannels];
@@ -66,12 +50,11 @@ MainWindow::MainWindow( QWidget *parent ) :
   for( int i=0; i<numChannels; i++ )
     chanlist[i] = CR_PACK(i, COMEDI_RANGE_ID, AREF_GROUND);
 
-  //[FIX]: i think this one is expressed in nanoseconds 1e9
   int ret = comedi_get_cmd_generic_timed( dev,
                                           COMEDI_SUB_DEVICE,
                                           &comediCommand,
                                           numChannels,
-                                          (int)(1e9/(SAMPLING_RATE/numChannels)) );
+                                          (int)(1e9/(SAMPLING_RATE)) );
 
   if(ret < 0)
   {
@@ -119,6 +102,24 @@ MainWindow::MainWindow( QWidget *parent ) :
     exit(-1);
   }
 
+  // the timing is done channel by channel
+  // this means that the actual sampling rate is divided by
+  // number of channels
+  if ((comediCommand.convert_src ==  TRIG_TIMER)&&(comediCommand.convert_arg)) {
+	  sampling_rate=(((double)1E9 / comediCommand.convert_arg)/numChannels);
+  }
+  
+  // the timing is done scan by scan (all channels at once)
+  // the sampling rate is equivalent of the scan_begin_arg
+  if ((comediCommand.scan_begin_src ==  TRIG_TIMER)&&(comediCommand.scan_begin_arg)) {
+	  sampling_rate=(double)1E9 / comediCommand.scan_begin_arg;
+  }
+
+  // 50Hz or 60Hz mains notch filter
+  iirnotch = new Iir::Butterworth::BandStop<IIRORDER>;
+  assert( iirnotch != NULL );
+  iirnotch->setup (IIRORDER, sampling_rate, NOTCH_F, NOTCH_F/10.0);
+
   /* start the command */
   ret = comedi_command(dev, &comediCommand);
   if(ret < 0)
@@ -156,7 +157,7 @@ MainWindow::MainWindow( QWidget *parent ) :
   mainLayout->addLayout(plotLayout);
 
   // two plots
-  RawDataPlot = new DataPlot(xData, yData, psthLength, this);
+  RawDataPlot = new DataPlot(xData, yData, psthLength, crange->max, crange->min, this);
   plotLayout->addWidget(RawDataPlot);
   RawDataPlot->show();
 
@@ -183,12 +184,11 @@ MainWindow::MainWindow( QWidget *parent ) :
   ADcounterLayout->addWidget(cntChannel);
   connect(cntChannel, SIGNAL(valueChanged(double)), SLOT(slotSetChannel(double)));
 
-  QPushButton *toggleSound = new QPushButton(ADcounterGroup);
-  toggleSound->setText("Sound on");
-  toggleSound->setCheckable(true);
-  ADcounterLayout->addWidget(toggleSound);
-  connect(toggleSound, SIGNAL(clicked()), SLOT(slotSoundToggle()));
-
+  filter50HzCheckBox = new QCheckBox( "50Hz filter" );
+  filter50HzCheckBox->connect(filter50HzCheckBox, SIGNAL( stateChanged(int) ),
+			      this, SLOT( slot50Hz(int) ) );
+  filter50HzCheckBox->setEnabled( true );
+  ADcounterLayout->addWidget(filter50HzCheckBox);
 
   // psth functions
   QGroupBox   *PSTHfunGroup  = new QGroupBox( "PSTH functions", this );
@@ -220,12 +220,6 @@ MainWindow::MainWindow( QWidget *parent ) :
   savePsth->setText("save PSTH");
   PSTHfunLayout->addWidget(savePsth);
   connect(savePsth, SIGNAL(clicked()), SLOT(slotSavePsth()));
-
-  QPushButton *printPsth = new QPushButton(PSTHfunGroup);
-  printPsth->setText("print PSTH");
-  PSTHfunLayout->addWidget(printPsth);
-  connect(printPsth, SIGNAL(clicked()), SLOT(slotPrint()));
-
 
   // psth params
   QGroupBox   *PSTHcounterGroup = new QGroupBox( "PSTH parameters", this );
@@ -263,44 +257,18 @@ MainWindow::MainWindow( QWidget *parent ) :
   QLabel *thresholdLabel = new QLabel("Spike Threshold", PSTHcounterGroup);
   PSTHcounterLayout->addWidget(thresholdLabel);
 
-  cntSpikeT = new QwtCounter(PSTHcounterGroup);
-  cntSpikeT->setNumButtons(3);
-  cntSpikeT->setIncSteps(QwtCounter::Button1, 1);
-  cntSpikeT->setIncSteps(QwtCounter::Button2, 10);
-  cntSpikeT->setIncSteps(QwtCounter::Button3, 100);
-  cntSpikeT->setRange(0, 4095, 1);
-  cntSpikeT->setValue(spikeThres);
-  PSTHcounterLayout->addWidget(cntSpikeT);
-  connect(cntSpikeT, SIGNAL(valueChanged(double)), SLOT(slotSetSpikeThres(double)));
+  editSpikeT = new QTextEdit();
+
+  QFont editFont("Courier",14);
+  QFontMetrics editMetrics(editFont);
+  editSpikeT->setMaximumHeight ( editMetrics.height()*1.2 );
+  editSpikeT->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  editSpikeT->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  editSpikeT->setFont(editFont);
 
 
-  // psth recording
-  QGroupBox   *PSTHrecGroup  = new QGroupBox( "PSTH recording", this );
-  QVBoxLayout *PSTHrecLayout = new QVBoxLayout;
-
-  PSTHrecGroup->setLayout(PSTHrecLayout);
-  PSTHrecGroup->setAlignment(Qt::AlignJustify);
-  PSTHrecGroup->setSizePolicy( QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed) );
-  controlLayout->addWidget( PSTHrecGroup );
-
-  QLabel *numTrialsLabel = new QLabel("Number of Trials", PSTHrecGroup);
-  PSTHrecLayout->addWidget(numTrialsLabel);
-
-  QwtCounter *cntTrials = new QwtCounter(PSTHrecGroup);
-  cntTrials->setNumButtons(3);
-  cntTrials->setIncSteps(QwtCounter::Button1, 1);
-  cntTrials->setIncSteps(QwtCounter::Button2, 10);
-  cntTrials->setIncSteps(QwtCounter::Button3, 100);
-  cntTrials->setRange(0, 9000, 1);
-  cntTrials->setValue(psthNumTrials);
-  PSTHrecLayout->addWidget(cntTrials);
-  connect(cntTrials, SIGNAL(valueChanged(double)), SLOT(slotSetNumTrials(double)));
-
-  QPushButton *startRecPsthb = new QPushButton(PSTHrecGroup);
-  startRecPsthb->setText("start Recording");
-  PSTHrecLayout->addWidget(startRecPsthb);
-  connect(startRecPsthb, SIGNAL(clicked()), SLOT(slotStartPsthRec()));
-
+  PSTHcounterLayout->addWidget(editSpikeT);
+  connect(editSpikeT, SIGNAL(textChanged()), SLOT(slotSetSpikeThres()));
 
   // Generate timer event every 50ms
   (void)startTimer(50);
@@ -310,52 +278,6 @@ MainWindow::MainWindow( QWidget *parent ) :
 MainWindow::~MainWindow()
 {
   delete[] chanlist;
-}
-
-void MainWindow::slotPrint()
-{
-  // print the PSTH plot
-  QPrinter printer;
-
-  QString docName = MyPsthPlot->title().text();
-  if ( docName.isEmpty() )
-  {
-    docName.replace (QRegExp (QString::fromLatin1 ("\n")), tr (" -- "));
-    printer.setDocName (docName);
-  }
-
-  printer.setOrientation(QPrinter::Landscape);
-
-  QPrintDialog dialog(&printer, this);
-
-  if( dialog.exec() == QDialog::Accepted )
-    MyPsthPlot->print(printer, PrintFilter());
-}
-
-void MainWindow::slotSoundToggle()
-{
-  if(playSound == 0)
-    playSound = 1;
-  else
-    playSound = 0;
-}
-
-void MainWindow::slotStartPsthRec()
-{
-  for(int i=0; i<psthLength/psthBinw; i++) {
-    psthData[i] = 0;
-    spikeCountData[i] = 0;
-  }
-  psthRecordMode = 1;
-  psthActTrial = 0;
-  psthOn = 1;
-  time = 0;
-  MyPsthPlot->startDisplay();
-}
-
-void MainWindow::slotSetNumTrials(double n)
-{
-  psthNumTrials = (int) n;
 }
 
 void MainWindow::slotSavePsth()
@@ -396,26 +318,32 @@ void MainWindow::slotClearPsth()
 
 void MainWindow::slotTriggerPsth()
 {
-  if(psthOn == 0)
-    {
-      MyPsthPlot->startDisplay();
-      psthOn = 1;
-      psthActTrial = 0;
-      time = 0;
-    }
-  else
-    {
-      MyPsthPlot->stopDisplay();
-      psthOn = 0;
-      psthActTrial = 0;
-      spikeDetected = false;
-    }
+	if(psthOn == 0)
+	{
+		for(int i=0; i<psthLength/psthBinw; i++) {
+			psthData[i] = 0;
+			spikeCountData[i] = 0;
+		}
+		psthActTrial = 0;
+		psthOn = 1;
+		time = 0;
+		MyPsthPlot->startDisplay();
+		psthOn = 1;
+		psthActTrial = 0;
+		time = 0;
+	}
+	else
+	{
+		MyPsthPlot->stopDisplay();
+		psthOn = 0;
+		psthActTrial = 0;
+		spikeDetected = false;
+	}
 }
 
 void MainWindow::slotSetChannel(double c)
 {
   adChannel = (int)c;
-  //RawDataPlot->setChannel(adChannel);
   spikeDetected = false;
 }
 
@@ -450,11 +378,11 @@ void MainWindow::slotSetPsthBinw(double b)
   MyPsthPlot->setPsthLength(psthLength/psthBinw);
 }
 
-void MainWindow::slotSetSpikeThres(double t)
+void MainWindow::slotSetSpikeThres()
 {
-  spikeThres = (int)t;
-  //RawDataPlot->setSpikeThres(spikeThres);
-  spikeDetected = false;
+	QString t = editSpikeT->toPlainText();
+	spikeThres = t.toInt();
+	spikeDetected = false;
 }
 
 void MainWindow::slotAveragePsth(bool checked)
@@ -462,8 +390,10 @@ void MainWindow::slotAveragePsth(bool checked)
   if( checked )
   {
     cntBinw->setEnabled(false);
-    cntSpikeT->setEnabled(false);
+    editSpikeT->setEnabled(false);
     MyPsthPlot->setYaxisLabel("Averaged Data");
+    MyPsthPlot->setAxisTitle(QwtPlot::yLeft, "V");
+    MyPsthPlot->setTitle("VEP");
     triggerPsth->setText("Averaging on");
     psthBinw = 1;
     cntBinw->setValue(psthBinw);
@@ -471,8 +401,10 @@ void MainWindow::slotAveragePsth(bool checked)
   else
   {
     cntBinw->setEnabled(true);
-    cntSpikeT->setEnabled(true);
+    editSpikeT->setEnabled(true);
     MyPsthPlot->setYaxisLabel("Spikes/s");
+    MyPsthPlot->setAxisTitle(QwtPlot::yLeft, "Spikes/s");
+    MyPsthPlot->setTitle("PSTH");
     triggerPsth->setText("PSTH on");
   }
 }
@@ -489,15 +421,22 @@ void MainWindow::timerEvent(QTimerEvent *)
       exit(1);
     }
 
-    memmove( yData, yData+1, (psthLength - 1) * sizeof(yData[0]) );
-
-    double &yNew = yData[psthLength-1];
+    int v;
 
     if( sigmaBoard )
-      yNew = ((lsampl_t *)buffer)[adChannel];
+	    v = ((lsampl_t *)buffer)[adChannel];
     else
-      yNew = ((sampl_t *)buffer)[adChannel];
+	    v = ((sampl_t *)buffer)[adChannel];
 
+    double yNew = comedi_to_phys(v,
+				 crange,
+				 maxdata);
+
+    if (filter50HzCheckBox->checkState()==Qt::Checked) {
+	    yNew=iirnotch->filter(yNew);
+    }                                
+
+    RawDataPlot->setNewData(yNew);
 
     int trialIndex = time % psthLength;
 
@@ -509,22 +448,14 @@ void MainWindow::timerEvent(QTimerEvent *)
     }
     else if( !spikeDetected && yNew>spikeThres )
     {
-      if(playSound != 0)
-      {
-        // click once
-        // crashes when artsd is running
-        sounddev = fopen("/dev/dsp","w");
-        fwrite(&beep, 1, 1, sounddev);
-        fwrite(&quiet, 1, 1, sounddev);
-        fclose(sounddev);
-      }
       if(psthOn)
       {
         int psthIndex = trialIndex / psthBinw;
 
         spikeCountData[psthIndex] += 1;
 
-        psthData[psthIndex] = ( spikeCountData[psthIndex]*1000 ) / ( psthBinw * (time/psthLength + 1) );
+        psthData[psthIndex] = ( spikeCountData[psthIndex]*1000 ) / 
+		( psthBinw * (time/psthLength + 1) );
 
         spikeDetected = true;
       }
@@ -537,17 +468,7 @@ void MainWindow::timerEvent(QTimerEvent *)
     if( trialIndex == 0 )
       psthActTrial += 1;
     
-    if( psthRecordMode && psthActTrial == psthNumTrials )
-    {
-      psthRecordMode = 0;
-      psthOn = 0;
-      MyPsthPlot->stopDisplay();
-    }
-
     ++time;
   }
-  
   RawDataPlot->replot();
 }
-
-

@@ -11,11 +11,10 @@
 #ifndef PSTHPLOT_H
 #define PSTHPLOT_H
 
-#include <qwt-qt4/qwt_plot.h>
-#include <qwt-qt4/qwt_plot_curve.h>
+#include <qwt/qwt_plot.h>
+#include <qwt/qwt_plot_curve.h>
 
 #include <QTimerEvent>
-
 
 /** The PSTH plot widget
 */
@@ -32,6 +31,11 @@ class PsthPlot : public QwtPlot
   ///timer id
   int currtimer;
 
+  double max,min;
+  int updateCtr;
+
+  int nDatapoints;
+
 protected:
   // replot the data regularly
   virtual void timerEvent(QTimerEvent *e);
@@ -41,7 +45,6 @@ public:
   void setPsthLength(int length);
   void startDisplay();
   void stopDisplay();
-  
   void setYaxisLabel(const QString &label) { setAxisTitle(QwtPlot::yLeft, label); }
 };
 

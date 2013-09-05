@@ -2,7 +2,7 @@
  *   Copyright (C) 2003 by Matthias H. Hennig                              *
  *   hennig@cn.stir.ac.uk                                                  *
  *   Copyright (C) 2005 by Bernd Porr                                      *
- *   BerndPorr@f2s.com                                                     *
+ *   mail@berndporr.me.uk                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -15,20 +15,23 @@
 
 #include <QWidget>
 #include <QPushButton>
+#include <QTextEdit>
+#include <QCheckBox>
 
 #include <comedilib.h>
-#include <qwt-qt4/qwt_counter.h>
+#include <qwt/qwt_counter.h>
 
 #include "psthplot.h"
 #include "dataplot.h"
-
+#include <Iir.h>
 
 // maximal length of the PSTH (for memory alloctaion)
 #define MAX_PSTH_LENGTH 5000
 
-#define SAMPLING_RATE 8000 // 8kHz
+#define SAMPLING_RATE 1000 // 1kHz
 
-#define FILTER_FREQU 50 // filter out 50Hz noise
+#define NOTCH_F 50 // filter out 50Hz noise
+#define IIRORDER 6
 
 #define COMEDI_SUB_DEVICE  0
 #define COMEDI_RANGE_ID    0    /* +/- 4V */
@@ -55,11 +58,6 @@ class MainWindow : public QWidget
   // boo, activate/deactivate the psth plot
   int psthOn;
 
-  // for the PSTH 'record mode':
-  // numer of repetitions
-  int psthNumTrials;
-  // bool, indicates active recording mode
-  int psthRecordMode;
   // count trials while recording
   int psthActTrial;
   
@@ -78,12 +76,6 @@ class MainWindow : public QWidget
   // time counter
   long int time;
   
-  // click
-  FILE *sounddev;
-  char beep;
-  char quiet;
-  int playSound;
-
   comedi_cmd comediCommand;
   
   /**
@@ -92,29 +84,31 @@ class MainWindow : public QWidget
   comedi_t *dev;
   size_t   readSize;
   bool     sigmaBoard;
+  lsampl_t maxdata;
+  comedi_range* crange;
+  double sampling_rate;
 
   int numChannels;
   unsigned *chanlist;
 
+  Iir::Butterworth::BandStop<IIRORDER>* iirnotch;
+
   QPushButton *averagePsth;
   QwtCounter *cntBinw;
-  QwtCounter *cntSpikeT;
+  QTextEdit *editSpikeT;
   QPushButton *triggerPsth;
+  QCheckBox* filter50HzCheckBox;
 
 private slots:
 
   // actions:
-  void slotPrint();
   void slotClearPsth();
   void slotTriggerPsth();
   void slotSetChannel(double c);
   void slotSetPsthLength(double l);
   void slotSetPsthBinw(double b);
-  void slotSetSpikeThres(double t);
+  void slotSetSpikeThres();
   void slotSavePsth();
-  void slotSetNumTrials(double);
-  void slotStartPsthRec();
-  void slotSoundToggle();
   void slotAveragePsth(bool checked);
 
 protected:

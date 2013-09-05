@@ -23,33 +23,50 @@ PsthPlot::PsthPlot(double *xData, double *yData, int length, QWidget *parent) :
   setAxisTitle(QwtPlot::yLeft, "Spikes/s");
 
   dataCurve = new QwtPlotCurve("PSTH");
-  dataCurve->setRawData(xData, yData, length);
+  dataCurve->setRawSamples(xData, yData, length);
   dataCurve->attach(this);
   dataCurve->setPen( QPen(Qt::blue, 2) );
   dataCurve->setStyle(QwtPlotCurve::Steps);
 
-  //long mY = insertLineMarker("", QwtPlot::yLeft);
-  //setMarkerYPos(mY, 0.0);
+  max = 0;
+  min = 0;
+  nDatapoints = length;
+  updateCtr = 1;
 
   setAutoReplot(false);
 }
 
 void PsthPlot::setPsthLength(int length)
 {
-  dataCurve->setRawData(xData, yData, length);
+	nDatapoints = length;	
+	dataCurve->setRawSamples(xData, yData, length);
 }
 
 void PsthPlot::startDisplay()
 {
-  currtimer=startTimer(150);
+	currtimer=startTimer(150);
 }
 
 void PsthPlot::stopDisplay()
 {
-  killTimer(currtimer);
+	killTimer(currtimer);
 }
 
 void PsthPlot::timerEvent(QTimerEvent *)
 {
+	updateCtr--;
+	if (updateCtr==0) {
+		min = INT_MAX;
+		max = INT_MIN;
+		for(int i=0;i<nDatapoints;i++) {
+			float y = yData[i];
+			if (y>max) max = y;
+			if (y<min) min = y;
+		}
+		double d = max - min;
+		setAxisScale(QwtPlot::yLeft,min-d/10,max+d/10);
+		updateCtr = 10;
+	}
+
   replot();
 }

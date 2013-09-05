@@ -11,24 +11,33 @@
 #ifndef DATAPLOT_H
 #define DATAPLOT_H
 
-#include <qwt-qt4/qwt_plot.h>
-#include <qwt-qt4/qwt_plot_curve.h>
+#include <qwt/qwt_plot.h>
+#include <qwt/qwt_plot_curve.h>
+
+// in samples (1sec)
+#define SCALE_UPDATE_PERIOD 1000
 
 /// this plot shows the raw input data (spikes or membrane potential)
 class DataPlot : public QwtPlot
 {
 public:
 
-  DataPlot(const double *xData, const double *yData, int length, QWidget *parent = 0);
+	DataPlot(double *xData, double *yData, int length, 
+		 double max, double min, 
+		 QWidget *parent = 0);
   void setPsthLength(int length);
-  
+  void setNewData(double yNew);
+
 private:
-  const double *xData, *yData;
+  double *xData, *yData;
 
   // number of data points
   int psthLength;
   // curve object
   QwtPlotCurve *dataCurve;
+
+  double max,min;
+  int updateCtr;
 };
 
 #endif

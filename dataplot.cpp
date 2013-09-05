@@ -10,30 +10,53 @@
 
 #include "dataplot.h"
 
-DataPlot::DataPlot(const double *xData, const double *yData, int length, QWidget *parent) :
+DataPlot::DataPlot(double *xData, double *yData, int length, 
+		   double maxY, double minY, QWidget *parent) :
     QwtPlot(parent),
     xData(xData),
-    yData(yData)
+    yData(yData),
+    max(maxY),
+    min(minY),
+    updateCtr(1)
 {
   setTitle("Raw Data");
   setAxisTitle(QwtPlot::xBottom, "Time/ms");
   setAxisTitle(QwtPlot::yLeft, "A/D Value");
-  //setAxisScale(QwtPlot::yLeft, 2000, 5000);
+
+  // setAxisAutoScale(QwtPlot::yLeft,true);
 
   // Insert new curve for raw data
   dataCurve = new QwtPlotCurve("Raw Data");
   dataCurve->setPen( QPen(Qt::red, 2) );
-  dataCurve->setRawData(xData, yData, length);
+  dataCurve->setRawSamples(xData, yData, length);
+  psthLength = length;
   dataCurve->attach(this);
-
-  //long mY = insertLineMarker("", QwtPlot::yLeft);
-  //setMarkerYPos(mY, 0.0);
 }
 
 void DataPlot::setPsthLength(int length)
 {
   psthLength = length;
-  dataCurve->setRawData(xData, yData, psthLength);
+  dataCurve->setRawSamples(xData, yData, psthLength);
   replot();
 }
 
+void DataPlot::setNewData(double yNew) {
+    memmove( yData, yData+1, (psthLength - 1) * sizeof(yData[0]) );
+    yData[psthLength-1] = yNew;
+    if (yNew>max) {
+	    max = yNew;
+    } else {
+	    max = max - (max-yNew)/SCALE_UPDATE_PERIOD;
+    }
+    if (yNew<min) {
+	    min = yNew;
+    } else {
+	    min = min - (min-yNew)/SCALE_UPDATE_PERIOD;
+    }
+    updateCtr--;
+    if (updateCtr==0) {
+	    double d = max - min;
+	    setAxisScale(QwtPlot::yLeft,min-d/10,max+d/10);
+	    updateCtr = SCALE_UPDATE_PERIOD;
+    }
+}
