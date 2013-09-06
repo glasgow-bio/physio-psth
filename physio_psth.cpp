@@ -19,6 +19,7 @@
 #include <QPrintDialog>
 #include <QFileDialog>
 #include <QTextStream>
+#include <QComboBox>
 
 MainWindow::MainWindow( QWidget *parent ) :
     QWidget(parent),
@@ -28,7 +29,8 @@ MainWindow::MainWindow( QWidget *parent ) :
     spikeThres(1),
     psthOn(0),
     spikeDetected(false),
-    time(0)
+    time(0),
+    linearAverage(0)
 {
   // initialize comedi
   const char *filename = "/dev/comedi0";
@@ -201,11 +203,11 @@ MainWindow::MainWindow( QWidget *parent ) :
   PSTHfunGroup->setSizePolicy( QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed) );
   controlLayout->addWidget( PSTHfunGroup );
 
-  averagePsth = new QPushButton(PSTHfunGroup);
-  averagePsth->setText("linear average");
-  averagePsth->setCheckable(true);
+  averagePsth = new QComboBox(PSTHfunGroup);
+  averagePsth->addItem(tr("PSTH"));
+  averagePsth->addItem(tr("VEP"));
   PSTHfunLayout->addWidget(averagePsth);
-  connect( averagePsth, SIGNAL(clicked(bool)), SLOT(slotAveragePsth(bool)) );
+  connect( averagePsth, SIGNAL(currentIndexChanged(int)), SLOT(slotAveragePsth(int)) );
 
   triggerPsth = new QPushButton(PSTHfunGroup);
   triggerPsth->setText("PSTH on");
@@ -394,28 +396,29 @@ void MainWindow::slotSetSpikeThres()
 	spikeDetected = false;
 }
 
-void MainWindow::slotAveragePsth(bool checked)
+void MainWindow::slotAveragePsth(int idx)
 {
-  if( checked )
-  {
-    cntBinw->setEnabled(false);
-    editSpikeT->setEnabled(false);
-    MyPsthPlot->setYaxisLabel("Averaged Data");
-    MyPsthPlot->setAxisTitle(QwtPlot::yLeft, "average/V");
-    MyPsthPlot->setTitle("VEP");
-    triggerPsth->setText("Averaging on");
-    psthBinw = 1;
-    cntBinw->setValue(psthBinw);
-  }
-  else
-  {
-    cntBinw->setEnabled(true);
-    editSpikeT->setEnabled(true);
-    MyPsthPlot->setYaxisLabel("Spikes/s");
-    MyPsthPlot->setAxisTitle(QwtPlot::yLeft, "Spikes/s");
-    MyPsthPlot->setTitle("PSTH");
-    triggerPsth->setText("PSTH on");
-  }
+	linearAverage = (idx>0);
+	if ( linearAverage )
+	{
+		cntBinw->setEnabled(false);
+		editSpikeT->setEnabled(false);
+		MyPsthPlot->setYaxisLabel("Averaged Data");
+		MyPsthPlot->setAxisTitle(QwtPlot::yLeft, "average/V");
+		MyPsthPlot->setTitle("VEP");
+		triggerPsth->setText("Averaging on");
+		psthBinw = 1;
+		cntBinw->setValue(psthBinw);
+	}
+	else
+	{
+		cntBinw->setEnabled(true);
+		editSpikeT->setEnabled(true);
+		MyPsthPlot->setYaxisLabel("Spikes/s");
+		MyPsthPlot->setAxisTitle(QwtPlot::yLeft, "Spikes/s");
+		MyPsthPlot->setTitle("PSTH");
+		triggerPsth->setText("PSTH on");
+	}
 }
 
 void MainWindow::timerEvent(QTimerEvent *)
@@ -449,7 +452,7 @@ void MainWindow::timerEvent(QTimerEvent *)
 
     int trialIndex = time % psthLength;
 
-    if( averagePsth->isChecked() && psthOn )
+    if( linearAverage && psthOn )
     {
       spikeCountData[trialIndex] += yNew;
 

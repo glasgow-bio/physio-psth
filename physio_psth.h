@@ -17,6 +17,7 @@
 #include <QPushButton>
 #include <QTextEdit>
 #include <QCheckBox>
+#include <QComboBox>
 
 #include <comedilib.h>
 #include <qwt/qwt_counter.h>
@@ -92,9 +93,11 @@ class MainWindow : public QWidget
   int numChannels;
   unsigned *chanlist;
 
+  int linearAverage;
+
   Iir::Butterworth::BandStop<IIRORDER>* iirnotch;
 
-  QPushButton *averagePsth;
+  QComboBox *averagePsth;
   QwtCounter *cntBinw;
   QTextEdit *editSpikeT;
   QPushButton *triggerPsth;
@@ -111,7 +114,7 @@ private slots:
   void slotSetPsthBinw(double b);
   void slotSetSpikeThres();
   void slotSavePsth();
-  void slotAveragePsth(bool checked);
+  void slotAveragePsth(int idx);
 
 protected:
 
